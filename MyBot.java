@@ -1,4 +1,3 @@
-//Neutral
 import java.util.ArrayList;
 import java.util.Random;
 public class MyBot {
@@ -8,9 +7,42 @@ public class MyBot {
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("JavaBot");
+        Networking.sendInit("CurrJavaBot");
 
         Random rand = new Random();
+
+        //Find all the production potentials of every square on the map
+        for(int y = 0; y < gameMap.height; y++){
+            for(int x= 0; x < gameMap.width; x++) {
+                Site site = gameMap.getSite(new Location(x, y));
+                site.tp = (float) site.production - (float) site.strength;
+            }
+        }
+
+        for (int p = 0; p < 2; p++) {
+
+        for(int y = 0; y < gameMap.height; y++){
+            for(int x= 0; x < gameMap.width; x++) {
+                Site site = gameMap.getSite(new Location(x, y));
+                site.prodpot = -1;
+
+                for(Direction d : Direction.CARDINALS){
+                    Site unoccupied = gameMap.getSite(new Location(x, y), d);
+                    if(unoccupied.owner != myID && unoccupied.tp > site.prodpot*0.99f){
+                        site.prodpot = unoccupied.tp*1.01f; 
+                    }
+                }
+            }
+        }
+
+        for(int y = 0; y < gameMap.height; y++){
+            for(int x= 0; x < gameMap.width; x++) {
+                Site site = gameMap.getSite(new Location(x, y));
+                site.tp = site.prodpot;
+            }
+        }
+    }
+
 
         while(true) {
             ArrayList<Move> moves = new ArrayList<Move>();
@@ -22,26 +54,25 @@ public class MyBot {
                 for(int x = 0; x < gameMap.width; x++) {
                     Site site = gameMap.getSite(new Location(x, y));
                     int weakestNear = MAX_STRENGTH + 1;
+                    float bestScore = 0;
                     int highestProd = -1;
                     Direction weakestNearDir = Direction.STILL;
                     site.next_strength = 0;
-                        //Finds the weakest strength unoccupied square
+
+                    //Finds the weakest strength unoccupied square
                     for(Direction d : Direction.CARDINALS) {
                         Site unoccupied = gameMap.getSite(new Location(x, y), d);
                             //Find the weakest square
-                        if (unoccupied.owner != myID && unoccupied.strength < weakestNear){
+                        float score =  - unoccupied.strength;
+                        if (unoccupied.owner != myID && score > bestScore){
+                            bestScore = score;
                             weakestNearDir = d;
                             weakestNear = unoccupied.strength;
                             highestProd = unoccupied.production;
-                        } else if (unoccupied.owner != myID && unoccupied.strength == weakestNear){
-                                //Find highest production square
-                            if (unoccupied.production > highestProd){
-                                highestProd = unoccupied.production;
-                                weakestNearDir = d;
-                            } 
                         }
                     }
-                    if (weakestNear < MAX_STRENGTH) {
+
+                    if (weakestNear < MAX_STRENGTH+1) {
                         site.need = Math.max(weakestNear-site.strength, 0);    
                     } else {
                         site.need = 0;
@@ -96,33 +127,31 @@ public class MyBot {
                             }
                         }
                         if (site.dist < 9 && site.production * 5 < site.strength) {
-                            site.need = MAX_STRENGTH + 1;
-                            moves.add(new Move(new Location(x, y), site.dir));
                             Site changed = gameMap.getSite(new Location(x, y), site.dir);
-                            changed.next_strength += site.strength;
-                            movedPiece = true;                           
+                            if ((changed.strength <= site.strength && changed.owner == 0) || changed.owner != 0) {
+                                site.need = MAX_STRENGTH + 1;
+                                moves.add(new Move(new Location(x, y), site.dir));
+                                changed.next_strength += site.strength;
+                                movedPiece = true;
+                            } else {
+                                moves.add(new Move(new Location(x, y), Direction.STILL));
+                                movedPiece = true;
+                                site.next_strength = site.strength;
+                            }
                         }
-
+                        if (movedPiece) continue;
                         //Finds the weakest strength unoccupied square
+                        float bestScore = 0;
                         for(Direction d : Direction.CARDINALS) {
                             Site unoccupied = gameMap.getSite(new Location(x, y), d);
                             //Enemy square
-                            if (unoccupied.owner != 0 && unoccupied.owner != myID && unoccupied.strength < site.strength) {
-                                weakestNearDir = d;
-                                weakestNear = unoccupied.strength;
-                                highestProd = unoccupied.production;
-                                break;
-                            } else if (unoccupied.owner != myID && unoccupied.strength < weakestNear){
-                                weakestNearDir = d;
-                                weakestNear = unoccupied.strength;
-                                highestProd = unoccupied.production;
-                            } else if (unoccupied.owner != myID && unoccupied.strength == weakestNear){
-                                //Find highest production square
-                                if (unoccupied.production > highestProd){
-                                    highestProd = unoccupied.production;
-                                    weakestNearDir = d;
-                                } 
-                            } else if (unoccupied.owner == myID) {
+                        float score =  - unoccupied.strength;
+                        if (unoccupied.owner != myID && score > bestScore){
+                            bestScore = score;
+                            weakestNearDir = d;
+                            weakestNear = unoccupied.strength;
+                            highestProd = unoccupied.production;
+                        } else if (unoccupied.owner == myID) {
                                 if (unoccupied.need > highestNeed && site.strength - unoccupied.need + unoccupied.production >= 0) {
                                     highestNeed = unoccupied.need;
                                     hnD = d;
