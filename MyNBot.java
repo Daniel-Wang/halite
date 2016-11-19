@@ -1,14 +1,13 @@
-//Neutral
 import java.util.ArrayList;
 import java.util.Random;
-public class MyBot {
+public class MyNBot {
     public static void main(String[] args) throws java.io.IOException {
         final int MAX_STRENGTH = 255;
         InitPackage iPackage = Networking.getInit();
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("JavaBot");
+        Networking.sendInit("NeutralJavaBot");
 
         Random rand = new Random();
 

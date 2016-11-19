@@ -1,14 +1,13 @@
-//Neutral
 import java.util.ArrayList;
 import java.util.Random;
-public class MyBot {
+public class MyFightBot {
     public static void main(String[] args) throws java.io.IOException {
         final int MAX_STRENGTH = 255;
         InitPackage iPackage = Networking.getInit();
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("JavaBot");
+        Networking.sendInit("JavaFightBot");
 
         Random rand = new Random();
 
@@ -46,27 +45,9 @@ public class MyBot {
                     } else {
                         site.need = 0;
                     }
-                    site.dist = 10;
-                    site.resis = 3000;
-                    laser:
-                    for(Direction d : Direction.CARDINALS) {
-                        int sum = 0;
-                        for (int i = 1; i < 8; i++ ) {
-                            Site unoccupied = gameMap.getSite(new Location(x, y), d, i);
-
-                            if(unoccupied.owner != myID && unoccupied.owner != 0 && i*sum < site.resis*site.dist) {
-                                site.dist = i;
-                                site.resis = sum;
-                                site.dir = d;
-                                break;
-                            } else if (unoccupied.owner != myID) {
-                                sum += unoccupied.strength;
-                            }
-                        }
-                    }
                 }
             }
-                        
+
             //Actual Moves
             for(int y = 0; y < gameMap.height; y++) {
                 for(int x = 0; x < gameMap.width; x++) {
@@ -81,27 +62,25 @@ public class MyBot {
                         int highestProd = -1;
                         Direction weakestNearDir = Direction.STILL;
 
-                        //Fighting is the number one priority if it happen
-                        for (Direction d : Direction.CARDINALS) {
-                            Site unoccupied = gameMap.getSite(new Location(x, y), d);
-                            if (site.production * 5 < site.strength && d != site.dir && unoccupied.dist < 8 && site.dist < 8 && unoccupied.dist * unoccupied.resis + 200 < site.dist * site.resis) {
-                                site.dist = unoccupied.dist + 1;
-                                site.resis = unoccupied.resis;
-                                site.dir = d;
-                                site.need = MAX_STRENGTH + 1;
-                                moves.add(new Move(new Location(x, y), d));
-                                Site changed = gameMap.getSite(new Location(x, y), d);
-                                changed.next_strength += site.strength;
-                                movedPiece = true;
+                        //Fighting is the number one priority if it happens
+                        laser:
+                        for (int i = 1; i < 8; i++ ){
+                            for(Direction d : Direction.CARDINALS) {
+
+                                Site unoccupied = gameMap.getSite(new Location(x, y), d, i);
+
+                                if(unoccupied.owner != myID && unoccupied.owner != 0 && site.strength > site.production * 5){
+                                    site.need = MAX_STRENGTH + 1;
+                                    moves.add(new Move(new Location(x, y), d));
+
+                                    Site changed = gameMap.getSite(new Location(x, y), d);
+                                    changed.next_strength += site.strength;
+                                    movedPiece = true;
+                                    break laser;
+                                }
                             }
                         }
-                        if (site.dist < 9 && site.production * 5 < site.strength) {
-                            site.need = MAX_STRENGTH + 1;
-                            moves.add(new Move(new Location(x, y), site.dir));
-                            Site changed = gameMap.getSite(new Location(x, y), site.dir);
-                            changed.next_strength += site.strength;
-                            movedPiece = true;                           
-                        }
+                        
 
                         //Finds the weakest strength unoccupied square
                         for(Direction d : Direction.CARDINALS) {
