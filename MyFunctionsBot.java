@@ -1,13 +1,13 @@
 import java.util.ArrayList;
 import java.util.Random;
-public class MyNBot {
+public class MyFunctionsBot {
     public static void main(String[] args) throws java.io.IOException {
         final int MAX_STRENGTH = 255;
         InitPackage iPackage = Networking.getInit();
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("NeutralJavaBot");
+        Networking.sendInit("FunctionsJavaBot");
 
         Random rand = new Random();
 
@@ -40,6 +40,7 @@ public class MyNBot {
                             } 
                         }
                     }
+                    
                     if (weakestNear < MAX_STRENGTH) {
                         site.need = Math.max(weakestNear-site.strength, 0);    
                     } else {
