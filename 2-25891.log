@@ -1,0 +1,26 @@
+ --- Init ---
+RandomJavaBot
+ --- Bot used 119 milliseconds ---
+-----------------------------------------------------------------------------
+ --- Frame #1 ---
+22 0 3 
+ --- Bot used 6 milliseconds ---
+-----------------------------------------------------------------------------
+ --- Frame #2 ---
+22 0 0 22 1 0 
+ --- Bot used 3 milliseconds ---
+-----------------------------------------------------------------------------
+ --- Frame #3 ---
+22 0 0 22 1 0 
+ --- Bot used 2 milliseconds ---
+-----------------------------------------------------------------------------
+ --- Frame #4 ---
+I'm here
+ --- Bot used 2 milliseconds ---
+ERRORED!
+Response received (if any):
+I'm here
+ --- Bot was killed. Below is the rest of its output (if any): ---
+22 0 0 22 1 0 
+
+ --- End bot output ---

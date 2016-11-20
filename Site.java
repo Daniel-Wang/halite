@@ -1,5 +1,6 @@
 public class Site {
-    public int owner, strength, production, need, next_strength, danger, dist, resis; 
+    public int owner, strength, production, need, next_strength, danger, dist, resis, tstr;
     public float prodpot, tp;
-    public Direction dir;
+    public boolean moved;
+    public Direction dir, tdir, cdir;
 }
