@@ -86,7 +86,7 @@ public class MyNBot {
                             if (site.production * 5 < site.strength && d != site.dir && unoccupied.dist < 8 && site.dist < 8 && unoccupied.dist * unoccupied.resis + 200 < site.dist * site.resis) {
                                 site.dist = unoccupied.dist + 1;
                                 site.resis = unoccupied.resis;
-                                site.dir = d;
+                                site.dir = d
                                 site.need = MAX_STRENGTH + 1;
                                 moves.add(new Move(new Location(x, y), d));
                                 Site changed = gameMap.getSite(new Location(x, y), d);
