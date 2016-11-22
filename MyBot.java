@@ -30,6 +30,12 @@ public class MyBot {
                 s.tryresis = 10000;
                 s.trydir = Direction.STILL;
                 s.bestem = 0;
+                s.moved = false;
+                s.resis = 100000;
+                s.dist = 10;
+                s.dir = Direction.STILL;
+                s.need = 0;
+                s.next_strength = 0;
             }
         }
         while (dis < RANGE) {
@@ -218,32 +224,32 @@ public class MyBot {
         }
     }
     public static void play_all_attacking_moves(GameMap gameMap, ArrayList<Move> moves, int myID, int turn) {
-        boolean done = false;
-        int i = 10;
-        while (!done) {
-            for(int y = 0; y < gameMap.height; y++) {
-                for(int x = 0; x < gameMap.width; x++) {
-                    //check if a neighbor has a better enemy_eval
-                    Site s = gameMap.getSite(new Location(x, y));
-                    if (!(s.moved || THRESH > s.strength) && s.owner == myID) {
-                        if (s.dist == i) {
-                            check_better_neighbors(gameMap, myID, new Location(x, y));
-                        }
-                    }
-                }
-            }
-            i--;
-            if (i == 0) {
-                done = true;
-            }
-        }
+        // boolean done = false;
+        // int i = 10;
+        // while (!done) {
+        //     for(int y = 0; y < gameMap.height; y++) {
+        //         for(int x = 0; x < gameMap.width; x++) {
+        //             //check if a neighbor has a better enemy_eval
+        //             Site s = gameMap.getSite(new Location(x, y));
+        //             if (!(s.moved || THRESH > s.strength) && s.owner == myID) {
+        //                 if (s.dist == i) {
+        //                     check_better_neighbors(gameMap, myID, new Location(x, y));
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     i--;
+        //     if (i == 0) {
+        //         done = true;
+        //     }
+        // }
         attack(gameMap, myID, moves);
-        try {
-            printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
-            printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
-        } catch (Exception e) {
+        // try {
+        //     printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
+        //     printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
+        // } catch (Exception e) {
 
-        }
+        // }
     }
 
 
@@ -251,12 +257,6 @@ public class MyBot {
         Site mysite = gameMap.getSite(loc);
 
         //default values
-        mysite.moved = false;
-        mysite.resis = 100000;
-        mysite.dist = 10;
-        mysite.dir = Direction.STILL;
-        mysite.need = 0;
-        mysite.next_strength = 0;
         for (Direction d : Direction.CARDINALS) {
             int resistances = 1; //sum of resistances until enemy
             for (int i = 1; i < RANGE+1; i++) {
@@ -287,12 +287,12 @@ public class MyBot {
                 }
             }
         }
-        try {
-            printfile(gameMap, myID, "befATT" + Integer.toString(turn));
-            printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
-        } catch (Exception e) {
+        // try {
+        //     printfile(gameMap, myID, "befATT" + Integer.toString(turn));
+        //     printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
+        // } catch (Exception e) {
 
-        }
+        // }
     }
 
     public static void makeTargetMove(GameMap gameMap, int myID, ArrayList<Move> moves) {
@@ -476,7 +476,7 @@ public class MyBot {
             gameMap = Networking.getFrame(); 
             set_enemy_distances(gameMap, myID);
             //For every block I own, find resistance and distance to nearest enemy
-            fill_enemies(gameMap, myID, turn);
+            //fill_enemies(gameMap, myID, turn);
 
             play_all_attacking_moves(gameMap, moves, myID, turn);
             //Expansion 
