@@ -76,34 +76,30 @@ public class GameMap{
     }
 
     public Location getLocation(Location loc, Direction dir, int radius) {
-        Location l = new Location(loc);
-        //Figure out direction
-        if(dir != Direction.STILL) {
-            if(dir == Direction.NORTH) {
-                if(l.y == 0) l.y = height - 1;
-                else l.y--;
-            }
-            else if(dir == Direction.EAST) {
-                if(l.x == width - 1) l.x = 0;
-                else l.x++;
-            }
-            else if(dir == Direction.SOUTH) {
-                if(l.y == height - 1) l.y = 0;
-                else l.y++;
-            }
-            else if(dir == Direction.WEST) {
-                if(l.x == 0) l.x = width - 1;
-                else l.x--;
-            }
+        if (radius == 0) {
+            return loc;
         }
-
-        radius -= 1;
-
-        if(radius > 1){
-            l = getLocation(l, dir, radius);
-        } 
-
-        return l;
+        // Location l = loc;
+        // //Figure out direction
+        // if(dir != Direction.STILL) {
+        //     if(dir == Direction.NORTH) {
+        //         if(l.y == 0) l.y = height - 1;
+        //         else l.y--;
+        //     }
+        //     else if(dir == Direction.EAST) {
+        //         if(l.x == width - 1) l.x = 0;
+        //         else l.x++;
+        //     }
+        //     else if(dir == Direction.SOUTH) {
+        //         if(l.y == height - 1) l.y = 0;
+        //         else l.y++;
+        //     }
+        //     else if(dir == Direction.WEST) {
+        //         if(l.x == 0) l.x = width - 1;
+        //         else l.x--;
+        //     }
+        // }
+        return getLocation(getLocation(loc, dir), dir, radius-1);
     }
 
     public Site getSite(Location loc, Direction dir, int radius) {
