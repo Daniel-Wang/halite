@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.io.*;
 
-public class MyBot {
+public class MyExpJavaBot {
     public static final int RANGE = 7;
     public static final int GRANGE = 10;
     public static final int MAX_STRENGTH = 255;
@@ -20,6 +20,23 @@ public class MyBot {
         }
         return d;
     }
+    public static Move makeMove(GameMap gameMap, int myID, Location loc) {
+        Site s = gameMap.getSite(loc);
+        if (s.next_strength + s.strength < MAX_STRENGTH + 100 && s.danger == 0) {
+            s.next_strength += s.strength;
+            return new Move(loc, Direction.STILL);
+        }
+        for (Direction d : Direction.CARDINALS) {
+            Site n = gameMap.getSite(loc, d);
+            if (n.next_strength + s.strength < MAX_STRENGTH + 100 && n.danger == 0) {
+                n.next_strength += s.strength;
+                return new Move(loc, Direction.STILL);
+            }
+        }
+        s.next_strength += s.strength;
+        return new Move(loc, Direction.STILL);
+
+    }
     public static void set_enemy_distances(GameMap gameMap, int myID) {
         int goal = gameMap.height*gameMap.width;
         int curr = 0;
@@ -28,15 +45,16 @@ public class MyBot {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
                 s.trydist = 1000;
+                s.trymystr = 10000;
                 s.tryresis = 10000;
                 s.trydir = Direction.STILL;
-                s.gdist = 1000;
-                s.gresis = 10000;
+                s.gdist = 30;
+                s.gresis = 1000;
                 s.gdir = Direction.STILL;
                 s.bestg = 100;
                 s.bestem = 0;
                 s.moved = false;
-                s.resis = 100000;
+                s.resis = 1000;
                 s.dist = 10;
                 s.dir = Direction.STILL;
                 s.need = 0;
@@ -50,12 +68,14 @@ public class MyBot {
                     if (dis == -1 && s.owner != 0 && s.owner != myID) {
                         s.trydist = 0;
                         s.tryresis = 0;
+                        s.trymystr = 0;
                     } else if (dis == s.trydist && dis == 0) {
                         for (Direction d : Direction.CARDINALS) {
                             Site n = gameMap.getSite(new Location(x, y), d);
                             if (n.owner == 0 || n.owner == myID) {
                                 n.trydist = dis + 1;
                                 n.tryresis = 0;
+                                n.trymystr = s.trymystr;
                                 n.bestem++;
                             }
                         }
@@ -63,27 +83,31 @@ public class MyBot {
                         for (Direction d : Direction.CARDINALS) {
                             Site n = gameMap.getSite(new Location(x, y), d);
                             if (s.owner == 0) {
-                                if (eval_enemy(n.tryresis, n.trydist) > eval_enemy(s.tryresis + s.strength, s.trydist+1)) {
+                                if (eval_enemy(n.tryresis, n.trydist, n.trymystr) > eval_enemy(s.tryresis + s.strength, s.trydist+1, s.trymystr)) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis + s.strength;
                                     n.bestem = s.bestem;
+                                    n.trymystr = s.trymystr;
                                     n.trydir = getOpposite(d);
-                                } else if (eval_enemy(n.tryresis, n.trydist) == eval_enemy(s.tryresis + s.strength, s.trydist+1) && n.bestem < s.bestem) {
+                                } else if (eval_enemy(n.tryresis, n.trydist, n.trymystr) == eval_enemy(s.tryresis + s.strength, s.trydist+1, s.trymystr) && n.bestem < s.bestem) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis + s.strength;
                                     n.bestem = s.bestem;
+                                    n.trymystr = s.trymystr;
                                     n.trydir = getOpposite(d);
                                 }
                             }
                             if (s.owner == myID) {
-                                if (eval_enemy(n.tryresis, n.trydist) > eval_enemy(s.tryresis, s.trydist+1)) {
+                                if (eval_enemy(n.tryresis, n.trydist, n.trymystr) > eval_enemy(s.tryresis, s.trydist+1, s.trymystr + s.strength)) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis;
                                     n.bestem = s.bestem;
+                                    n.trymystr = s.trymystr + s.strength;
                                     n.trydir = getOpposite(d);
-                                } else if (eval_enemy(n.tryresis, n.trydist) == eval_enemy(s.tryresis, s.trydist+1) && n.bestem < s.bestem) {
+                                } else if (eval_enemy(n.tryresis, n.trydist, n.trymystr) == eval_enemy(s.tryresis, s.trydist+1, s.trymystr + s.strength) && n.bestem < s.bestem) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis;
+                                    n.trymystr = s.trymystr + s.strength;
                                     n.bestem = s.bestem;
                                     n.trydir = getOpposite(d);
                                 }
@@ -95,7 +119,7 @@ public class MyBot {
             dis++;
         }
         dis = -1;
-        while (dis < GRANGE + 100) {
+        while (dis < 25) {
             for (int y = 0; y < gameMap.height; y++) {
                 for (int x = 0; x < gameMap.width; x++) {
                     Site s = gameMap.getSite(new Location(x, y));
@@ -110,7 +134,7 @@ public class MyBot {
                                 if (eval_expan(n.bestg, n.gdist, n.gresis) > eval_expan(s.bestg, s.gdist+1, s.gresis + s.strength)) {
                                     n.gdist = dis + 1;
                                     n.gresis = s.gresis + s.strength;
-                                    n.bestg = s.bestg;
+                                    n.bestg = (s.bestg);
                                     n.gdir = getOpposite(d);
                                 }
                             }
@@ -129,11 +153,11 @@ public class MyBot {
             dis++;
         }
     }
-    public static int eval_enemy(int resis, int dist) {
-        return (resis+1)*(int)Math.pow((dist+1), 1);
+    public static int eval_enemy(int resis, int dist, int mystr) {
+        return resis + (int)Math.pow((dist), 2)*2 + mystr/2;
     }
     public static int eval_expan(int o, int dist, int resis) {
-        return o*o + dist*dist*dist + 2*resis;
+        return o*o + (int) Math.pow(dist, 3) + 2*resis;
     }
     public static void notify_neighbors(GameMap gameMap, Location loc) {
         for (Direction d : Direction.CARDINALS) {
@@ -162,7 +186,7 @@ public class MyBot {
                 if (s.owner == myID) {
                     pw.print(s.bestg);
                 } else {
-                    pw.print(20 - s.production);
+                    pw.print(15 - s.production);
                 }
                 pw.print(" ");
 
@@ -174,8 +198,10 @@ public class MyBot {
                 Site s = gameMap.getSite(new Location(x, y));
                 if (s.owner == myID) {
                     pw.print(s.gdist);
-                } else {
+                } else if (s.owner == 0) {
                     pw.print(s.owner);
+                } else {
+                    pw.print(-1);
                 }
                 pw.print(" ");
             }
@@ -214,11 +240,14 @@ public class MyBot {
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
+                Site n = gameMap.getSite(new Location(x, y), s.trydir);
                 if (s.owner == myID && s.trydist < 3) {
-                    if (s.strength < THRESH) {
-                        s.trydir = Direction.STILL;
+                    if (s.strength < THRESH || s.strength + n.next_strength > MAX_STRENGTH + 100) {
+                        moves.add(makeMove(gameMap, myID, new Location(x, y)));
+                    } else {
+                        moves.add(new Move(new Location(x, y), s.trydir));
+                        n.next_strength += s.strength;
                     }
-                    moves.add(new Move(new Location(x, y), s.trydir));
                     s.moved = true;
                     s.need = 0;
 
@@ -231,12 +260,12 @@ public class MyBot {
         }
     }
 
-    public static void attack(GameMap gameMap, int myID, ArrayList<Move> moves) {
+    public static void attack(GameMap gameMap, int myID, ArrayList<Move> moves, int range) {
         first_wave(gameMap, myID, moves);
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
-                if (s.trydist < RANGE && THRESH < s.strength && s.owner == myID && !s.moved) {
+                if (s.trydist < range && THRESH < s.strength && s.owner == myID && !s.moved) {
                     Site n = gameMap.getSite(new Location(x, y), s.trydir);
                     if (((n.strength < s.strength && n.owner == 0) || n.owner != 0) && n.danger == 0 && (n.next_strength + s.strength < MAX_STRENGTH + 50)) {
                         moves.add(new Move(new Location(x, y), s.trydir));
@@ -244,26 +273,27 @@ public class MyBot {
                         s.need = 0;
                         n.next_strength += s.strength;
                     } else {
-                        moves.add(new Move(new Location(x, y), Direction.STILL));
+                        moves.add(makeMove(gameMap, myID, new Location(x, y)));
                         s.moved = true;
                         s.need = n.strength - s.strength - s.production;
-                        s.next_strength += s.strength + s.production;
+                        s.tstr = n.strength;
+                        // s.next_strength += s.strength + s.production;
                     }
                 }
             }
         }
     }
-    public static void check_better_neighbors(GameMap gameMap, int myID, Location loc) {
-        Site mysite = gameMap.getSite(loc);
-        for (Direction d : Direction.CARDINALS) {
-            Site n = gameMap.getSite(loc, d);
-            if (eval_enemy(n.resis, 1+n.dist) < eval_enemy(mysite.resis, mysite.dist) && d != mysite.dir && n.owner == myID) {
-                mysite.dist = n.dist + 1;
-                mysite.resis = n.resis;
-                mysite.dir = d;
-            }
-        }
-    }
+    // public static void check_better_neighbors(GameMap gameMap, int myID, Location loc) {
+    //     Site mysite = gameMap.getSite(loc);
+    //     for (Direction d : Direction.CARDINALS) {
+    //         Site n = gameMap.getSite(loc, d);
+    //         if (eval_enemy(n.resis, 1+n.dist) < , n.trymystreval_enemy(mysite.resis, mysite.dist) && d != mysite.dir && n.owner == myID) {
+    //             mysite.dist = n.dist + 1;
+    //             mysite.resis = n.resis;
+    //             mysite.dir = d;
+    //         }
+    //     }
+    // }
     public static void play_all_attacking_moves(GameMap gameMap, ArrayList<Move> moves, int myID, int turn) {
         // boolean done = false;
         // int i = 10;
@@ -284,38 +314,39 @@ public class MyBot {
         //         done = true;
         //     }
         // }
-        attack(gameMap, myID, moves);
-        // try {
-        //     printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
-        //     printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
-        // } catch (Exception e) {
+        int val = 7;
+        attack(gameMap, myID, moves, val);
+        try {
+            printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
+            printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
+        } catch (Exception e) {
 
-        // }
-    }
-
-
-    public static void find_enemies(GameMap gameMap, Location loc, int myID) {
-        Site mysite = gameMap.getSite(loc);
-
-        //default values
-        for (Direction d : Direction.CARDINALS) {
-            int resistances = 1; //sum of resistances until enemy
-            for (int i = 1; i < RANGE+1; i++) {
-                Site unoccupied = gameMap.getSite(loc, d, i);
-                if (unoccupied.owner != myID && unoccupied.owner != 0) { //if it's an enemy
-                    if (eval_enemy(resistances, i) < eval_enemy(mysite.resis, mysite.dist)) {
-                        mysite.resis = resistances;
-                        mysite.dist = i;
-                        mysite.dir = d;
-                     
-                    }
-                    break;
-                } else if (unoccupied.owner == 0) { //if it's neutral
-                    resistances += unoccupied.strength;
-                }
-            }
         }
     }
+
+
+    // public static void find_enemies(GameMap gameMap, Location loc, int myID) {
+    //     Site mysite = gameMap.getSite(loc);
+
+    //     //default values
+    //     for (Direction d : Direction.CARDINALS) {
+    //         int resistances = 1; //sum of resistances until enemy
+    //         for (int i = 1; i < RANGE+1; i++) {
+    //             Site unoccupied = gameMap.getSite(loc, d, i);
+    //             if (unoccupied.owner != myID && unoccupied.owner != 0) { //if it's an enemy
+    //                 if (eval_enemy(resistances, i) < eval_enemy(mysite.resis, mysite.dist)) {
+    //                     mysite.resis = resistances;
+    //                     mysite.dist = i;
+    //                     mysite.dir = d;
+                     
+    //                 }
+    //                 break;
+    //             } else if (unoccupied.owner == 0) { //if it's neutral
+    //                 resistances += unoccupied.strength;
+    //             }
+    //         }
+    //     }
+    // }
 
     public static void fill_enemies(GameMap gameMap, int myID, int turn) {
         for(int y = 0; y < gameMap.height; y++) {
@@ -324,7 +355,7 @@ public class MyBot {
                 Site s = gameMap.getSite(loc);
                 s.danger = 0;
                 if (s.owner == myID) {
-                    find_enemies(gameMap, loc, myID);
+                    // find_enemies(gameMap, loc, myID);
                 }
             }
         }
@@ -340,10 +371,10 @@ public class MyBot {
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
-                if (s.tdir != Direction.STILL && s.owner == myID && !s.moved) {
-                    Site n = gameMap.getSite(new Location(x, y), s.tdir);
-                    if ((n.strength < s.strength && n.owner == 0) || (n.owner != 0 && s.strength > THRESH)) {
-                        moves.add(new Move(new Location(x, y), s.tdir));
+                if (s.gdir != Direction.STILL && s.owner == myID && !s.moved) {
+                    Site n = gameMap.getSite(new Location(x, y), s.gdir);
+                    if ((n.strength < s.strength && n.owner == 0) || (n.owner != 0 && s.strength > THRESH && s.strength + n.next_strength < 350)) {
+                        moves.add(new Move(new Location(x, y), s.gdir));
                         n.next_strength += s.strength;
                         s.moved = true;
                         s.need = 0;
@@ -367,9 +398,8 @@ public class MyBot {
                             s.moved = true;
                             s.need = 0;
                             if (n.next_strength < n.tstr && !n.moved) {
-                                moves.add(new Move(gameMap.getLocation(new Location(x, y), d), Direction.STILL));
+                                moves.add(makeMove(gameMap, myID, gameMap.getLocation(new Location(x, y), d)));
                                 n.moved = true;
-                                n.next_strength += n.strength;
                             }
                         }
                     }
@@ -383,9 +413,9 @@ public class MyBot {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
                 if (s.owner == myID && !s.moved && THRESH > s.strength) {
-                    moves.add(new Move(new Location(x, y), Direction.STILL));
+                    moves.add(makeMove(gameMap, myID, new Location(x, y)));
                     s.moved = true;
-                    s.next_strength += s.strength + s.production;
+                    
                 }
             }
         }
@@ -398,25 +428,22 @@ public class MyBot {
         int bprod = 0;
         mysite.tdir = Direction.STILL;
         boolean winnable = false;
-        for (Direction d : Direction.CARDINALS) {
-            Site n = gameMap.getSite(loc, d);
-            if (n.owner != myID) {
-                if (mysite.strength > n.strength) {
-                    winnable = true;
-                }
-                if (n.strength < mysite.tstr - P_THRESH) {
-                    mysite.tstr = n.strength;
-                    mysite.tdir = d;
-                    mysite.tprod = n.production;
-                    bprod = n.production;
-                } else if (n.strength - P_THRESH <= mysite.tstr && n.production > bprod) {
-                    mysite.tstr = n.strength;
-                    mysite.tdir = d;
-                    mysite.tprod = n.production;
-                    bprod = n.production;
-                }
+        Direction d = mysite.gdir;
+        Site n = gameMap.getSite(loc, d);
+        if (n.owner != myID) {
+            if (mysite.strength > n.strength) {
+                winnable = true;
+                mysite.tstr = n.strength;
+                mysite.tdir = d;
+                mysite.tprod = n.production;
+                bprod = n.production;
+            } else {
+                mysite.tstr = n.strength;
+                mysite.tdir = d;
+                mysite.tprod = n.production;
+                bprod = n.production;
             }
-        }
+        }  
         if (!winnable && mysite.tdir != Direction.STILL) {
             mysite.need = mysite.tstr - mysite.strength - mysite.production;
         }
@@ -437,10 +464,10 @@ public class MyBot {
     public static void makeMyMove(GameMap gameMap, Location loc, int myID, ArrayList<Move> moves) {
         Site mysite = gameMap.getSite(loc);
         
-        if (mysite.cdir != Direction.STILL) {
-            Site p = gameMap.getSite(loc, mysite.cdir);
+        if (mysite.gdir != Direction.STILL) {
+            Site p = gameMap.getSite(loc, mysite.gdir);
             if (p.owner == myID && p.next_strength + mysite.strength < MAX_STRENGTH + 100) {
-                moves.add(new Move(loc, mysite.cdir));
+                moves.add(new Move(loc, mysite.gdir));
                 p.next_strength += mysite.strength;
                 mysite.moved = true;
                 mysite.need = 0;
@@ -507,7 +534,7 @@ public class MyBot {
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("JavaBot");
+        Networking.sendInit("ExpJavaBot");
 
         Random rand = new Random();
 

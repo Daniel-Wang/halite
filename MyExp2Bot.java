@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.io.*;
 
-public class MyBot {
+public class MyExp2Bot {
     public static final int RANGE = 7;
     public static final int GRANGE = 10;
     public static final int MAX_STRENGTH = 255;
@@ -95,7 +95,7 @@ public class MyBot {
             dis++;
         }
         dis = -1;
-        while (dis < GRANGE + 100) {
+        while (dis < gameMap.height/2) {
             for (int y = 0; y < gameMap.height; y++) {
                 for (int x = 0; x < gameMap.width; x++) {
                     Site s = gameMap.getSite(new Location(x, y));
@@ -133,7 +133,7 @@ public class MyBot {
         return (resis+1)*(int)Math.pow((dist+1), 1);
     }
     public static int eval_expan(int o, int dist, int resis) {
-        return o*o + dist*dist*dist + 2*resis;
+        return o*o + dist*dist + 2*resis;
     }
     public static void notify_neighbors(GameMap gameMap, Location loc) {
         for (Direction d : Direction.CARDINALS) {
@@ -340,10 +340,10 @@ public class MyBot {
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
-                if (s.tdir != Direction.STILL && s.owner == myID && !s.moved) {
-                    Site n = gameMap.getSite(new Location(x, y), s.tdir);
+                if (s.gdir != Direction.STILL && s.owner == myID && !s.moved) {
+                    Site n = gameMap.getSite(new Location(x, y), s.gdir);
                     if ((n.strength < s.strength && n.owner == 0) || (n.owner != 0 && s.strength > THRESH)) {
-                        moves.add(new Move(new Location(x, y), s.tdir));
+                        moves.add(new Move(new Location(x, y), s.gdir));
                         n.next_strength += s.strength;
                         s.moved = true;
                         s.need = 0;
@@ -398,25 +398,18 @@ public class MyBot {
         int bprod = 0;
         mysite.tdir = Direction.STILL;
         boolean winnable = false;
-        for (Direction d : Direction.CARDINALS) {
-            Site n = gameMap.getSite(loc, d);
-            if (n.owner != myID) {
-                if (mysite.strength > n.strength) {
-                    winnable = true;
-                }
-                if (n.strength < mysite.tstr - P_THRESH) {
-                    mysite.tstr = n.strength;
-                    mysite.tdir = d;
-                    mysite.tprod = n.production;
-                    bprod = n.production;
-                } else if (n.strength - P_THRESH <= mysite.tstr && n.production > bprod) {
-                    mysite.tstr = n.strength;
-                    mysite.tdir = d;
-                    mysite.tprod = n.production;
-                    bprod = n.production;
-                }
+        Direction d = mysite.gdir;
+        Site n = gameMap.getSite(loc, d);
+        if (n.owner != myID) {
+            if (mysite.strength > n.strength) {
+                winnable = true;
+            } else {
+                mysite.tstr = n.strength;
+                mysite.tdir = d;
+                mysite.tprod = n.production;
+                bprod = n.production;
             }
-        }
+        }  
         if (!winnable && mysite.tdir != Direction.STILL) {
             mysite.need = mysite.tstr - mysite.strength - mysite.production;
         }
@@ -437,10 +430,10 @@ public class MyBot {
     public static void makeMyMove(GameMap gameMap, Location loc, int myID, ArrayList<Move> moves) {
         Site mysite = gameMap.getSite(loc);
         
-        if (mysite.cdir != Direction.STILL) {
-            Site p = gameMap.getSite(loc, mysite.cdir);
+        if (mysite.gdir != Direction.STILL) {
+            Site p = gameMap.getSite(loc, mysite.gdir);
             if (p.owner == myID && p.next_strength + mysite.strength < MAX_STRENGTH + 100) {
-                moves.add(new Move(loc, mysite.cdir));
+                moves.add(new Move(loc, mysite.gdir));
                 p.next_strength += mysite.strength;
                 mysite.moved = true;
                 mysite.need = 0;
@@ -507,7 +500,7 @@ public class MyBot {
         int myID = iPackage.myID;
         GameMap gameMap = iPackage.map;
 
-        Networking.sendInit("JavaBot");
+        Networking.sendInit("Exp2JavaBot");
 
         Random rand = new Random();
 
