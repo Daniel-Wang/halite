@@ -2,9 +2,17 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.io.*;
 
+// Attack vs expansion
+// Within 8 of oppenent we stop expanding and only attack
+//
+// Tuning the heuristics
+// Make need more than one deep
+// Precomputing the best expansion path, by changing evalExpand
+// Store oppenents name and the parameters you used, try different parameters that beat certain opponents
+// 
+
 public class MyExpJavaBot {
     public static final int RANGE = 7;
-    public static final int GRANGE = 10;
     public static final int MAX_STRENGTH = 255;
     public static final int THRESH = 40;
     public static final int P_THRESH = 2;
@@ -30,7 +38,7 @@ public class MyExpJavaBot {
             Site n = gameMap.getSite(loc, d);
             if (n.next_strength + s.strength < MAX_STRENGTH + 100 && n.danger == 0) {
                 n.next_strength += s.strength;
-                return new Move(loc, Direction.STILL);
+                return new Move(loc, d);
             }
         }
         s.next_strength += s.strength;
@@ -38,15 +46,14 @@ public class MyExpJavaBot {
 
     }
     public static void set_enemy_distances(GameMap gameMap, int myID) {
-        int goal = gameMap.height*gameMap.width;
-        int curr = 0;
         int dis = -1;
+        //What is g- meaning? gdist gdir 
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
                 s.trydist = 1000;
                 s.trymystr = 10000;
-                s.tryresis = 10000;
+                s.tryresis = 10000; //More like accumulated resistance
                 s.trydir = Direction.STILL;
                 s.gdist = 30;
                 s.gresis = 1000;
@@ -65,31 +72,39 @@ public class MyExpJavaBot {
             for (int y = 0; y < gameMap.height; y++) {
                 for (int x = 0; x < gameMap.width; x++) {
                     Site s = gameMap.getSite(new Location(x, y));
+                    //Initialize all the enemy squares as 0 trydist, tryresis, and trymystr
+                    //On the first cycle
                     if (dis == -1 && s.owner != 0 && s.owner != myID) {
                         s.trydist = 0;
                         s.tryresis = 0;
                         s.trymystr = 0;
-                    } else if (dis == s.trydist && dis == 0) {
+                    } else if (dis == s.trydist && dis == 0) { //This will be the second run through the squares
+                        //Set squares around enemies and your squares to 1 dist, resistance to 0
                         for (Direction d : Direction.CARDINALS) {
                             Site n = gameMap.getSite(new Location(x, y), d);
                             if (n.owner == 0 || n.owner == myID) {
                                 n.trydist = dis + 1;
                                 n.tryresis = 0;
                                 n.trymystr = s.trymystr;
-                                n.bestem++;
+                                n.bestem++; // What is best bestem
                             }
                         }
                     } else if (dis == s.trydist) {
                         for (Direction d : Direction.CARDINALS) {
                             Site n = gameMap.getSite(new Location(x, y), d);
+                            int neighbourEval = eval_enemy(n.tryresis, n.trydist, n.trymystr) ;
+                            int siteEval = eval_enemy(s.tryresis + s.strength, s.trydist + 1, s.trymystr);
+                            int siteEvalPlusStr = eval_enemy(s.tryresis, s.trydist + 1, s.trymystr + s.strength);
+
                             if (s.owner == 0) {
-                                if (eval_enemy(n.tryresis, n.trydist, n.trymystr) > eval_enemy(s.tryresis + s.strength, s.trydist+1, s.trymystr)) {
+                                //If a neutral square's neighbour's path is better, set
+                                if (neighbourEval > siteEval) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis + s.strength;
                                     n.bestem = s.bestem;
                                     n.trymystr = s.trymystr;
                                     n.trydir = getOpposite(d);
-                                } else if (eval_enemy(n.tryresis, n.trydist, n.trymystr) == eval_enemy(s.tryresis + s.strength, s.trydist+1, s.trymystr) && n.bestem < s.bestem) {
+                                } else if (neighbourEval == siteEval && n.bestem < s.bestem) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis + s.strength;
                                     n.bestem = s.bestem;
@@ -98,13 +113,13 @@ public class MyExpJavaBot {
                                 }
                             }
                             if (s.owner == myID) {
-                                if (eval_enemy(n.tryresis, n.trydist, n.trymystr) > eval_enemy(s.tryresis, s.trydist+1, s.trymystr + s.strength)) {
+                                if (neighbourEval > siteEvalPlusStr) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis;
                                     n.bestem = s.bestem;
                                     n.trymystr = s.trymystr + s.strength;
                                     n.trydir = getOpposite(d);
-                                } else if (eval_enemy(n.tryresis, n.trydist, n.trymystr) == eval_enemy(s.tryresis, s.trydist+1, s.trymystr + s.strength) && n.bestem < s.bestem) {
+                                } else if (neighbourEval == siteEvalPlusStr && n.bestem < s.bestem) {
                                     n.trydist = dis + 1;
                                     n.tryresis = s.tryresis;
                                     n.trymystr = s.trymystr + s.strength;
@@ -171,7 +186,7 @@ public class MyExpJavaBot {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
                 if (s.owner == myID) {
-                    pw.print(s.gresis);
+                    pw.print("My " + s.gresis);
                 } else {
                     pw.print(s.strength);
                 }
@@ -359,12 +374,12 @@ public class MyExpJavaBot {
                 }
             }
         }
-        // try {
-        //     printfile(gameMap, myID, "befATT" + Integer.toString(turn));
-        //     printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
-        // } catch (Exception e) {
+        try {
+            printfile(gameMap, myID, "befATT" + Integer.toString(turn));
+            printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
+        } catch (Exception e) {
 
-        // }
+        }
     }
 
     public static void makeTargetMove(GameMap gameMap, int myID, ArrayList<Move> moves) {
@@ -542,13 +557,16 @@ public class MyExpJavaBot {
             turn++;
             ArrayList<Move> moves = new ArrayList<Move>();
             gameMap = Networking.getFrame(); 
+
+            //Find distances from your current block to the nearest enemy block
             set_enemy_distances(gameMap, myID);
             //For every block I own, find resistance and distance to nearest enemy
             //fill_enemies(gameMap, myID, turn);
 
+            //Attacking moves are prioritized first, before expansion moves
             play_all_attacking_moves(gameMap, moves, myID, turn);
-            //Expansion 
 
+            //Expansion 
             find_targets(gameMap, myID);
 
             makeTargetMove(gameMap, myID, moves);
@@ -557,7 +575,7 @@ public class MyExpJavaBot {
 
             makeStillMove(gameMap, myID, moves);
 
-            //Leftover Cells
+            //Leftover Cells ??? Which pieces are we actually moving, what are the cases for this piece
             getLeftTargets(gameMap, myID);
 
             makeLeftMove(gameMap, moves, myID);
