@@ -146,7 +146,7 @@ public class MyExpJavaBot {
                         for (Direction d : Direction.CARDINALS) {
                             Site n = gameMap.getSite(new Location(x, y), d);
                             if (s.owner == 0) {
-                                if (eval_expan(n.bestg, n.gdist, n.gresis) > eval_expan(s.bestg, s.gdist+1, s.gresis + s.strength)) {
+                                if (eval_expan(gameMap, n.bestg, n.gdist, n.gresis) > eval_expan(gameMap, s.bestg, s.gdist+1, s.gresis + s.strength)) {
                                     n.gdist = dis + 1;
                                     n.gresis = s.gresis + s.strength;
                                     n.bestg = (s.bestg);
@@ -154,7 +154,7 @@ public class MyExpJavaBot {
                                 }
                             }
                             if (s.owner == myID) {
-                                if (eval_expan(n.bestg, n.gdist, n.gresis) > eval_expan(s.bestg, s.gdist+1, s.gresis)) {
+                                if (eval_expan(gameMap, n.bestg, n.gdist, n.gresis) > eval_expan(gameMap, s.bestg, s.gdist+1, s.gresis)) {
                                     n.gdist = dis + 1;
                                     n.gresis = s.gresis;
                                     n.bestg = s.bestg;
@@ -171,8 +171,8 @@ public class MyExpJavaBot {
     public static int eval_enemy(int resis, int dist, int mystr) {
         return resis + (int)Math.pow((dist), 2)*2 + mystr/2;
     }
-    public static int eval_expan(int o, int dist, int resis) {
-        return o*o + (int) Math.pow(dist, 3) + 2*resis;
+    public static int eval_expan(GameMap gameMap, int prod, int dist, int resis) {
+        return prod*prod + (int) Math.pow(dist, 3) + 2*resis;
     }
     public static void notify_neighbors(GameMap gameMap, Location loc) {
         for (Direction d : Direction.CARDINALS) {
@@ -331,12 +331,12 @@ public class MyExpJavaBot {
         // }
         int val = 7;
         attack(gameMap, myID, moves, val);
-        try {
-            printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
-            printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
-        } catch (Exception e) {
+        // try {
+        //     printfile(gameMap, myID, "afAtt" + Integer.toString(turn));
+        //     printfileRD(gameMap, myID, "afAttRD" + Integer.toString(turn));
+        // } catch (Exception e) {
 
-        }
+        // }
     }
 
 
@@ -374,12 +374,12 @@ public class MyExpJavaBot {
                 }
             }
         }
-        try {
-            printfile(gameMap, myID, "befATT" + Integer.toString(turn));
-            printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
-        } catch (Exception e) {
+        // try {
+        //     printfile(gameMap, myID, "befATT" + Integer.toString(turn));
+        //     printfileRD(gameMap, myID, "befAttRD" + Integer.toString(turn));
+        // } catch (Exception e) {
 
-        }
+        // }
     }
 
     public static void makeTargetMove(GameMap gameMap, int myID, ArrayList<Move> moves) {
@@ -427,7 +427,7 @@ public class MyExpJavaBot {
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Site s = gameMap.getSite(new Location(x, y));
-                if (s.owner == myID && !s.moved && THRESH > s.strength) {
+                if (s.owner == myID && !s.moved && s.production*4 > s.strength) {
                     moves.add(makeMove(gameMap, myID, new Location(x, y)));
                     s.moved = true;
                     
